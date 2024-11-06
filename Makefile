@@ -1,48 +1,43 @@
-# Source directory
+# Paths to directories
 SRC_DIR = src
-# Build directory
 BUILD_DIR = build
-# Include directory for header files
 INCLUDE_DIR = include
 
-# Target executable
+# The name of the executable file
 TARGET = $(BUILD_DIR)/one-shot-tests.exe
 
-# Compiler
+# Compiler and flags
 CC = gcc
-# Compiler flags: show all warnings, include directory, and pkg-config flags for GTK and SDL
-CFLAGS = -Wall -I$(INCLUDE_DIR) `pkg-config --cflags gtk+-3.0 sdl2`
-# Linker flags: pkg-config libraries for GTK and SDL
-LDFLAGS = `pkg-config --libs gtk+-3.0 sdl2`
+CFLAGS = -Wall -I$(INCLUDE_DIR) `pkg-config --cflags gtk+-3.0 sdl2 SDL2_ttf`
+LDFLAGS = `pkg-config --libs gtk+-3.0 sdl2 SDL2_ttf`
 
 # Source files
-SRCS = $(SRC_DIR)/main.c
+SRCS = $(SRC_DIR)/main.c $(SRC_DIR)/question.c
 
-# Object files, mapping source files to build directory
+# Object files
 OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
-# Default target
+# Default command
 all: $(TARGET)
 
-# Link object files to create the target executable
+# Compilation of the target executable file
 $(TARGET): $(OBJS) | $(BUILD_DIR)
-    $(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) -o $@ $^ $(LDFLAGS)
 
-# Compile source files to object files
+# Compiling object files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
-    $(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Create build directory if it doesn't exist
+# Create build directory
 $(BUILD_DIR):
-    mkdir -p $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)
 
-# Clean build directory
+# Cleaning the compilation files
 clean:
-    rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
 
-# Run the target executable
+# Running the program
 run: $(TARGET)
-    ./$(TARGET)
+	$(TARGET)
 
-# Phony targets
 .PHONY: all clean run
