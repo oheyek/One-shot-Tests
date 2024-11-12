@@ -1,76 +1,86 @@
+#include "question.h"
 #include <stdlib.h>
 #include <string.h>
-#include "question.h"
+#include <stdio.h>
 
-// Function to create a new question
-// Parameters:
-// - text: The text of the question
-// - answers: Array of possible answers
-// - correct_answer_index: Index of the correct answer in the answers array
-// - answer_count: Number of answers provided
-// Returns: Pointer to the newly created Question, or NULL if an error occurs
-Question *create_question(const char *text, const char *answers[], int correct_answer_index, int answer_count)
-{
-    // Check if the number of answers exceeds the maximum allowed or if the correct answer index is invalid
-    if (answer_count > MAX_ANSWERS || correct_answer_index >= answer_count)
-    {
+// Function to create a question
+Question* create_question(const char *text, char *answers[], int correct_answer) {
+    // Allocate memory for the question
+    Question *q = (Question*)malloc(sizeof(Question));
+    if (q == NULL) {
         return NULL;
     }
-
-    // Allocate memory for the Question structure
-    Question *question = malloc(sizeof(Question));
-    if (!question)
-    {
-        return NULL;
-    }
-
     // Duplicate the question text
-    question->question_text = strdup(text);
-    if (!question->question_text)
-    {
-        free(question);
+    q->question_text = strdup(text);
+    if (q->question_text == NULL) {
+        free(q);
         return NULL;
     }
-
-    // Duplicate each answer text
-    for (int i = 0; i < answer_count; i++)
-    {
-        question->answers[i] = strdup(answers[i]);
-        if (!question->answers[i])
-        {
-            // Free previously allocated memory if duplication fails
-            for (int j = 0; j < i; j++)
-            {
-                free(question->answers[j]);
-            }
-            free(question->question_text);
-            free(question);
+    // Duplicate each answer
+    for (int i = 0; i < MAX_ANSWERS; i++) {
+        q->answers[i] = strdup(answers[i]);
+        if (q->answers[i] == NULL) {
+            free_question(q);
             return NULL;
         }
     }
-
-    // Set the correct answer index and the number of answers
-    question->correct_answer_index = correct_answer_index;
-    question->answer_count = answer_count;
-
-    return question;
+    // Set the correct answer index
+    q->correct_answer = correct_answer;
+    return q;
 }
 
 // Function to free the memory allocated for a question
-// Parameters:
-// - question: Pointer to the Question to be freed
-void free_question(Question *question)
-{
-    if (!question)
-        return;
-
-    // Free the question text
-    free(question->question_text);
-    // Free each answer text
-    for (int i = 0; i < question->answer_count; i++)
-    {
-        free(question->answers[i]);
+void free_question(Question *q) {
+    if (q != NULL) {
+        free(q->question_text);
+        for (int i = 0; i < MAX_ANSWERS; i++) {
+            free(q->answers[i]);
+        }
+        free(q);
     }
-    // Free the Question structure itself
-    free(question);
+}
+
+// Function to load questions from a file
+int load_questions_from_file(const char *filename, Question *questions[], int max_questions) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("Error: Could not open file %s\n", filename);
+        return -1;
+    }
+
+    int count = 0;
+    char buffer[256];
+    while (count < max_questions && fgets(buffer, sizeof(buffer), file)) {
+        buffer[strcspn(buffer, "\n")] = '\0';
+        char *question_text = strdup(buffer);
+
+        char *answers[MAX_ANSWERS];
+        for (int i = 0; i < MAX_ANSWERS; i++) {
+            if (fgets(buffer, sizeof(buffer), file) == NULL) {
+                printf("Error: Not enough answers for question %d\n", count + 1);
+                fclose(file);
+                return -1;
+            }
+            buffer[strcspn(buffer, "\n")] = '\0';
+            answers[i] = strdup(buffer);
+        }
+
+        if (fgets(buffer, sizeof(buffer), file) == NULL) {
+            printf("Error: Missing correct answer index for question %d\n", count + 1);
+            fclose(file);
+            return -1;
+        }
+        int correct_answer = atoi(buffer);
+
+        questions[count] = create_question(question_text, answers, correct_answer);
+        if (questions[count] == NULL) {
+            printf("Error: Could not create question %d\n", count + 1);
+            fclose(file);
+            return -1;
+        }
+        count++;
+    }
+
+    fclose(file);
+    return count;
 }

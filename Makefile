@@ -8,7 +8,7 @@ TARGET = $(BUILD_DIR)/one-shot-tests.exe
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -I$(INCLUDE_DIR) `pkg-config --cflags gtk+-3.0 sdl2 SDL2_ttf`
+CFLAGS = -Wall -g -I$(INCLUDE_DIR) `pkg-config --cflags gtk+-3.0 sdl2 SDL2_ttf`
 LDFLAGS = `pkg-config --libs gtk+-3.0 sdl2 SDL2_ttf`
 
 # Source files

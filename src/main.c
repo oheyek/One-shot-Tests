@@ -3,90 +3,53 @@
 #include <SDL2/SDL_ttf.h>
 #include <gtk/gtk.h>
 #include "question.h"
+#include <stdlib.h>
 
-// Define window dimensions
-#define WINDOW_WIDTH 640
-#define WINDOW_HEIGHT 480
+#define MAX_QUESTIONS 10
 
 // Function to render text using SDL
-void render_text(SDL_Renderer *renderer, const char *text, int x, int y, TTF_Font *font, SDL_Color color)
-{
-    // Create surface from text
-    SDL_Surface *surface = TTF_RenderText_Blended(font, text, color);
-    // Create texture from surface
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+void render_text(SDL_Renderer *renderer, TTF_Font *font, const char *text, int x, int y) {
+    SDL_Color color = {255, 255, 255}; // White color
+    SDL_Surface *text_surface = TTF_RenderText_Blended(font, text, color);
 
-    // Define destination rectangle for the texture
-    SDL_Rect dstrect = {x, y, surface->w, surface->h};
-    // Copy texture to renderer
-    SDL_RenderCopy(renderer, texture, NULL, &dstrect);
-
-    // Free resources
-    SDL_FreeSurface(surface);
-    SDL_DestroyTexture(texture);
-}
-
-// Function to render a question and its answers
-void render_question(SDL_Renderer *renderer, Question *question, TTF_Font *font)
-{
-    // Set background color to blue
-    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
-    // Clear the renderer
-    SDL_RenderClear(renderer);
-
-    // Define text color as white
-    SDL_Color textColor = {255, 255, 255, 255};
-
-    // Render the question text
-    render_text(renderer, question->question_text, 50, 50, font, textColor);
-
-    // Render each answer
-    for (int i = 0; i < question->answer_count; i++)
-    {
-        render_text(renderer, question->answers[i], 50, 100 + i * 30, font, textColor);
+    if (!text_surface) {
+        printf("Error creating surface: %s\n", TTF_GetError());
+        return;
     }
 
-    // Present the renderer
-    SDL_RenderPresent(renderer);
+    SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+    if (!text_texture) {
+        printf("Error creating texture: %s\n", SDL_GetError());
+    }
+
+    SDL_Rect text_rect = {x, y, text_surface->w, text_surface->h};
+    SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
+    SDL_DestroyTexture(text_texture);
+    SDL_FreeSurface(text_surface);
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     // Initialize GTK
     gtk_init(&argc, &argv);
 
-    // Initialize SDL video subsystem
-    if (SDL_Init(SDL_INIT_VIDEO) != 0)
-    {
-        fprintf(stderr, "SDL initialization error: %s\n", SDL_GetError());
+    // Initialize SDL
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return 1;
     }
 
     // Initialize SDL_ttf
-    if (TTF_Init() != 0)
-    {
-        fprintf(stderr, "SDL_ttf initialization error: %s\n", TTF_GetError());
-        SDL_Quit();
-        return 1;
-    }
-
-    // Load font
-    TTF_Font *font = TTF_OpenFont("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24);
-    if (!font)
-    {
-        fprintf(stderr, "Font loading error: %s\n", TTF_GetError());
-        TTF_Quit();
+    if (TTF_Init() == -1) {
+        printf("SDL_ttf could not initialize! TTF_Error: %s\n", TTF_GetError());
         SDL_Quit();
         return 1;
     }
 
     // Create SDL window
-    SDL_Window *window = SDL_CreateWindow("One-shot-Tests", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                          WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
-    if (!window)
-    {
-        fprintf(stderr, "SDL window creation error: %s\n", SDL_GetError());
-        TTF_CloseFont(font);
+    SDL_Window *window = SDL_CreateWindow("One-shot-Tests", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600,
+                                          SDL_WINDOW_SHOWN);
+    if (window == NULL) {
+        printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
         TTF_Quit();
         SDL_Quit();
         return 1;
@@ -94,58 +57,77 @@ int main(int argc, char *argv[])
 
     // Create SDL renderer
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (!renderer)
-    {
-        fprintf(stderr, "SDL renderer creation error: %s\n", SDL_GetError());
+    if (renderer == NULL) {
+        printf("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
         SDL_DestroyWindow(window);
-        TTF_CloseFont(font);
         TTF_Quit();
         SDL_Quit();
         return 1;
     }
 
-    // Define answers for the question
-    const char *answers[] = {"Answer A", "Answer B", "Answer C", "Answer D"};
-    // Create question structure
-    Question *question = create_question("Example question?", answers, 1, 4);
-
-    if (!question)
-    {
-        fprintf(stderr, "Question structure creation error.\n");
+    // Load font
+    TTF_Font *font = TTF_OpenFont("assets/font.ttf", 24);
+    if (!font) {
+        printf("Failed to load font: %s\n", TTF_GetError());
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
-        TTF_CloseFont(font);
         TTF_Quit();
         SDL_Quit();
         return 1;
     }
 
-    // Main event loop
-    int running = 1;
-    SDL_Event event;
-    while (running)
-    {
-        // Poll for events
-        while (SDL_PollEvent(&event))
-        {
-            if (event.type == SDL_QUIT)
-            {
-                running = 0;
+    // Load questions from file
+    Question *questions[MAX_QUESTIONS];
+    int question_count = load_questions_from_file("questions.txt", questions, MAX_QUESTIONS);
+
+    if (question_count == -1) {
+        printf("Failed to load questions.\n");
+        TTF_CloseFont(font);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
+    int quit = 0;
+    SDL_Event e;
+
+    // Main loop
+    while (!quit) {
+        while (SDL_PollEvent(&e) != 0) {
+            if (e.type == SDL_QUIT) {
+                quit = 1;
             }
         }
 
-        // Render the question and answers
-        render_question(renderer, question, font);
-        // Delay to control frame rate
-        SDL_Delay(100);
+        // Clear screen with blue color
+        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+        SDL_RenderClear(renderer);
+
+        // Render the first question and its answers
+        if (question_count > 0) {
+            render_text(renderer, font, questions[0]->question_text, 100, 100);
+            for (int i = 0; i < MAX_ANSWERS; i++) {
+                render_text(renderer, font, questions[0]->answers[i], 100, 150 + i * 30);
+            }
+        }
+
+        // Update screen
+        SDL_RenderPresent(renderer);
     }
 
-    // Free resources
-    free_question(question);
+    // Free allocated memory for questions
+    for (int i = 0; i < question_count; i++) {
+        free_question(questions[i]);
+    }
+
+    // Clean up SDL and TTF resources
     TTF_CloseFont(font);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     TTF_Quit();
     SDL_Quit();
+
     return 0;
 }
