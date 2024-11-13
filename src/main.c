@@ -5,23 +5,26 @@
 #include "question.h"
 #include <stdlib.h>
 
-#define MAX_QUESTIONS 10
-
-// Function to render text using SDL
+// Function to render text using SDL with trimming
 void render_text(SDL_Renderer *renderer, TTF_Font *font, const char *text, int x, int y) {
-    SDL_Color color = {255, 255, 255}; // White color
-    SDL_Surface *text_surface = TTF_RenderText_Blended(font, text, color);
+    if (text == NULL) return;
 
+    // Trim trailing newlines (in case there are any)
+    char trimmed_text[256];
+    snprintf(trimmed_text, sizeof(trimmed_text), "%s", text);
+    size_t len = strlen(trimmed_text);
+    if (len > 0 && (trimmed_text[len - 1] == '\n' || trimmed_text[len - 1] == '\r')) {
+        trimmed_text[len - 1] = '\0';
+    }
+
+    SDL_Color color = {255, 255, 255}; // White color
+    SDL_Surface *text_surface = TTF_RenderText_Blended(font, trimmed_text, color);
     if (!text_surface) {
         printf("Error creating surface: %s\n", TTF_GetError());
         return;
     }
 
     SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-    if (!text_texture) {
-        printf("Error creating texture: %s\n", SDL_GetError());
-    }
-
     SDL_Rect text_rect = {x, y, text_surface->w, text_surface->h};
     SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
     SDL_DestroyTexture(text_texture);
@@ -76,15 +79,18 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // Create a QuestionList structure
+    QuestionList *question_list = create_question_list(10);
+
     // Load questions from file
-    Question *questions[MAX_QUESTIONS];
-    int question_count = load_questions_from_file("questions.txt", questions, MAX_QUESTIONS);
+    int question_count = load_questions_from_file("questions.txt", question_list);
 
     if (question_count == -1) {
         printf("Failed to load questions.\n");
         TTF_CloseFont(font);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
+        free_question_list(question_list);
         TTF_Quit();
         SDL_Quit();
         return 1;
@@ -106,10 +112,10 @@ int main(int argc, char *argv[]) {
         SDL_RenderClear(renderer);
 
         // Render the first question and its answers
-        if (question_count > 0) {
-            render_text(renderer, font, questions[0]->question_text, 100, 100);
+        if (question_list->size > 0) {
+            render_text(renderer, font, question_list->questions[0]->question_text, 100, 100);
             for (int i = 0; i < MAX_ANSWERS; i++) {
-                render_text(renderer, font, questions[0]->answers[i], 100, 150 + i * 30);
+                render_text(renderer, font, question_list->questions[0]->answers[i], 100, 150 + i * 30);
             }
         }
 
@@ -118,9 +124,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Free allocated memory for questions
-    for (int i = 0; i < question_count; i++) {
-        free_question(questions[i]);
-    }
+    free_question_list(question_list);
 
     // Clean up SDL and TTF resources
     TTF_CloseFont(font);
