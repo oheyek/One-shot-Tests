@@ -12,7 +12,7 @@ CFLAGS = -Wall -g -I$(INCLUDE_DIR) `pkg-config --cflags gtk+-3.0 sdl2 SDL2_ttf`
 LDFLAGS = `pkg-config --libs gtk+-3.0 sdl2 SDL2_ttf`
 
 # Source files
-SRCS = $(SRC_DIR)/main.c $(SRC_DIR)/question.c
+SRCS = $(SRC_DIR)/main.c $(SRC_DIR)/question.c $(SRC_DIR)/window.c
 
 # Object files
 OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
