@@ -1,43 +1,42 @@
-# Paths to directories
+# Directories for source files, build files, and include files
 SRC_DIR = src
 BUILD_DIR = build
 INCLUDE_DIR = include
 
-# The name of the executable file
-TARGET = $(BUILD_DIR)/one-shot-tests.exe
+# Target executable name
+TARGET = $(BUILD_DIR)/one-shot-tests
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -g -I$(INCLUDE_DIR) `pkg-config --cflags gtk+-3.0 sdl2 SDL2_ttf`
-LDFLAGS = `pkg-config --libs gtk+-3.0 sdl2 SDL2_ttf`
+CFLAGS = -Wall -g -I$(INCLUDE_DIR) `pkg-config --cflags gtk+-3.0`
+LDFLAGS = `pkg-config --libs gtk+-3.0`
 
-# Source files
-SRCS = $(SRC_DIR)/main.c $(SRC_DIR)/question.c $(SRC_DIR)/window.c
-
-# Object files
+# Source files and object files
+SRCS = $(SRC_DIR)/main.c $(SRC_DIR)/question.c
 OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
-# Default command
+# Default target to build the executable
 all: $(TARGET)
 
-# Compilation of the target executable file
+# Rule to link object files into the target executable
 $(TARGET): $(OBJS) | $(BUILD_DIR)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-# Compiling object files
+# Rule to compile source files into object files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Create build directory
+# Rule to create the build directory if it doesn't exist
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# Cleaning the compilation files
+# Rule to clean the build directory
 clean:
 	rm -rf $(BUILD_DIR)
 
-# Running the program
+# Rule to run the target executable
 run: $(TARGET)
-	$(TARGET)
+	./$(TARGET)
 
+# Phony targets to avoid conflicts with files of the same name
 .PHONY: all clean run

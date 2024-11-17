@@ -1,123 +1,64 @@
-#include "question.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
+#include "question.h"
 
-// Function to create a list of questions
-QuestionList* create_question_list(int max_questions) {
-    QuestionList *ql = (QuestionList*)malloc(sizeof(QuestionList));
-    if (ql == NULL) {
-        return NULL;
-    }
-    ql->questions = (Question**)malloc(max_questions * sizeof(Question*));
-    if (ql->questions == NULL) {
-        free(ql);
-        return NULL;
-    }
-    ql->size = 0;
-    ql->max_size = max_questions;
-    return ql;
-}
-
-// Function to free the memory allocated for a list of questions
-void free_question_list(QuestionList *ql) {
-    if (ql != NULL) {
-        for (int i = 0; i < ql->size; i++) {
-            free_question(ql->questions[i]);
-        }
-        free(ql->questions);
-        free(ql);
-    }
-}
-
-// Function to trim newline characters from a string
-void trim_newline(char *str) {
-    size_t len = strlen(str);
-    if (len > 0 && (str[len - 1] == '\n' || str[len - 1] == '\r')) {
-        str[len - 1] = '\0';
-    }
-}
-
-// Function to create a question
-Question* create_question(const char *text, char *answers[], int correct_answer) {
-    // Allocate memory for the question
-    Question *q = (Question*)malloc(sizeof(Question));
-    if (q == NULL) {
-        return NULL;
-    }
-    // Duplicate the question text
-    q->question_text = strdup(text);
-    if (q->question_text == NULL) {
-        free(q);
-        return NULL;
-    }
-    // Duplicate each answer
-    for (int i = 0; i < MAX_ANSWERS; i++) {
-        q->answers[i] = strdup(answers[i]);
-        if (q->answers[i] == NULL) {
-            free_question(q);
-            return NULL;
-        }
-    }
-    // Set the correct answer index
-    q->correct_answer = correct_answer;
-    return q;
-}
-
-// Function to free the memory allocated for a question
-void free_question(Question *q) {
-    if (q != NULL) {
-        free(q->question_text);
-        for (int i = 0; i < MAX_ANSWERS; i++) {
-            free(q->answers[i]);
-        }
-        free(q);
-    }
+// Function to create an empty question list
+QuestionList* create_question_list() {
+    QuestionList *list = malloc(sizeof(QuestionList));
+    list->questions = NULL;
+    list->size = 0;
+    return list;
 }
 
 // Function to load questions from a file
-int load_questions_from_file(const char *filename, QuestionList *ql) {
+QuestionList* load_questions_from_file(const char *filename) {
+    QuestionList *ql = create_question_list();
     FILE *file = fopen(filename, "r");
-    if (file == NULL) {
-        printf("Error: Could not open file %s\n", filename);
-        return -1;
+    if (!file) {
+        fprintf(stderr, "Error: Unable to open file %s\n", filename);
+        free(ql);
+        return NULL;
     }
 
-    int count = 0;
     char buffer[256];
-    while (count < ql->max_size && fgets(buffer, sizeof(buffer), file)) {
-        trim_newline(buffer); // Remove newline characters
-        char *question_text = strdup(buffer);
+    while (fgets(buffer, sizeof(buffer), file)) {
+        buffer[strcspn(buffer, "\n")] = '\0'; // Remove newline character
 
-        char *answers[MAX_ANSWERS];
+        // Allocate memory for a new question
+        Question *q = malloc(sizeof(Question));
+        q->question_text = strdup(buffer);
+
+        // Read the answers for the question
         for (int i = 0; i < MAX_ANSWERS; i++) {
-            if (fgets(buffer, sizeof(buffer), file) == NULL) {
-                printf("Error: Not enough answers for question %d\n", count + 1);
-                fclose(file);
-                return -1;
+            if (fgets(buffer, sizeof(buffer), file)) {
+                buffer[strcspn(buffer, "\n")] = '\0'; // Remove newline character
+                q->answers[i] = strdup(buffer);
             }
-            trim_newline(buffer); // Remove newline characters
-            answers[i] = strdup(buffer);
         }
 
-        if (fgets(buffer, sizeof(buffer), file) == NULL) {
-            printf("Error: Missing correct answer index for question %d\n", count + 1);
-            fclose(file);
-            return -1;
-        }
-        trim_newline(buffer); // Remove newline characters
-        int correct_answer = atoi(buffer);
+        // Read the correct answer index
+        fscanf(file, "%d\n", &(q->correct_answer));
 
-        ql->questions[count] = create_question(question_text, answers, correct_answer);
-        if (ql->questions[count] == NULL) {
-            printf("Error: Could not create question %d\n", count + 1);
-            fclose(file);
-            return -1;
-        }
-        count++;
+        // Add the question to the question list
+        ql->questions = realloc(ql->questions, sizeof(Question*) * (ql->size + 1));
+        ql->questions[ql->size++] = q;
     }
 
     fclose(file);
-    ql->size = count;
-    return count;
+    return ql;
+}
+
+// Function to free the memory allocated for the question list
+void free_question_list(QuestionList *ql) {
+    if (!ql) return;
+    for (int i = 0; i < ql->size; i++) {
+        free(ql->questions[i]->question_text);
+        for (int j = 0; j < MAX_ANSWERS; j++) {
+            free(ql->questions[i]->answers[j]);
+        }
+        free(ql->questions[i]);
+    }
+    free(ql->questions);
+    free(ql);
 }

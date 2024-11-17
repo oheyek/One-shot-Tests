@@ -1,65 +1,83 @@
-#include <stdio.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
 #include <gtk/gtk.h>
 #include "question.h"
-#include "window.h"
 
-// Main function of the application
-int main(int argc, char *argv[]) {
-    // Initialize GTK
-    gtk_init(&argc, &argv);
+// Widgets for displaying the question and answer buttons
+static GtkWidget *question_label;
+static GtkWidget *answer_buttons[MAX_ANSWERS];
+static QuestionList *question_list;
+static int current_question = 0;
 
-    // Declare SDLApp structure to hold SDL-related components
-    SDLApp app;
+// Callback function for when an answer button is clicked
+static void on_answer_clicked(GtkButton *button, gpointer user_data) {
+    int answer_index = GPOINTER_TO_INT(user_data);
+    Question *q = question_list->questions[current_question];
 
-    // Initialize SDL with window title and dimensions
-    if (!init_SDL(&app, "One-shot-Tests", 800, 600)) {
-        return 1; // Exit if initialization fails
+    // Check if the selected answer is correct
+    if (answer_index == q->correct_answer) {
+        g_print("Correct!\n");
+    } else {
+        g_print("Wrong.\n");
     }
 
-    // Create a QuestionList and load questions from file
-    QuestionList *question_list = create_question_list(10);
-    int question_count = load_questions_from_file("questions.txt", question_list);
+    // Move to the next question
+    current_question++;
+    if (current_question < question_list->size) {
+        // Update the question label and answer buttons with the next question
+        gtk_label_set_text(GTK_LABEL(question_label), question_list->questions[current_question]->question_text);
+        for (int i = 0; i < MAX_ANSWERS; i++) {
+            gtk_button_set_label(GTK_BUTTON(answer_buttons[i]), question_list->questions[current_question]->answers[i]);
+        }
+    } else {
+        // End of the quiz
+        g_print("Quiz finished!\n");
+        GtkWidget *window = gtk_widget_get_toplevel(GTK_WIDGET(button));
+        gtk_widget_destroy(window);
+    }
+}
 
-    // Check if questions were loaded successfully
-    if (question_count == -1) {
-        printf("Failed to load questions.\n");
-        close_SDL(&app);
-        free_question_list(question_list);
+// Function to set up the main application window and widgets
+static void activate(GtkApplication *app, gpointer user_data) {
+    GtkWidget *window = gtk_application_window_new(app);
+    gtk_window_set_title(GTK_WINDOW(window), "One-Shot Tests");
+    gtk_window_set_default_size(GTK_WINDOW(window), 400, 300);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_container_add(GTK_CONTAINER(window), vbox);
+
+    // Create and add the question label
+    question_label = gtk_label_new(question_list->questions[current_question]->question_text);
+    gtk_box_pack_start(GTK_BOX(vbox), question_label, TRUE, TRUE, 0);
+
+    // Create a box to hold the answer buttons
+    GtkWidget *button_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), button_box, TRUE, TRUE, 0);
+
+    // Create and add the answer buttons
+    for (int i = 0; i < MAX_ANSWERS; i++) {
+        answer_buttons[i] = gtk_button_new_with_label(question_list->questions[current_question]->answers[i]);
+        g_signal_connect(answer_buttons[i], "clicked", G_CALLBACK(on_answer_clicked), GINT_TO_POINTER(i));
+        gtk_box_pack_start(GTK_BOX(button_box), answer_buttons[i], TRUE, TRUE, 0);
+    }
+
+    gtk_widget_show_all(window);
+}
+
+int main(int argc, char **argv) {
+    GtkApplication *app = gtk_application_new("com.example.oneshottests", G_APPLICATION_DEFAULT_FLAGS);
+    int status;
+
+    // Load the questions from a file
+    question_list = load_questions_from_file("questions.txt");
+    if (!question_list) {
         return 1;
     }
 
-    int quit = 0;
-    SDL_Event e;
+    // Connect the activate signal to the activate function
+    g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
+    status = g_application_run(G_APPLICATION(app), argc, argv);
 
-    // Main event loop
-    while (!quit) {
-        // Poll events
-        while (SDL_PollEvent(&e) != 0) {
-            if (e.type == SDL_QUIT) {
-                quit = 1; // Exit the loop if the window is closed
-            }
-        }
-
-        // Clear the screen with a blue color
-        clear_screen(&app, 0, 0, 255, 255);
-
-        // Render the first question and its answers
-        if (question_list->size > 0) {
-            render_text(&app, question_list->questions[0]->question_text, 100, 100);
-            for (int i = 0; i < MAX_ANSWERS; i++) {
-                render_text(&app, question_list->questions[0]->answers[i], 100, 150 + i * 30);
-            }
-        }
-
-        // Present the rendered content to the screen
-        SDL_RenderPresent(app.renderer);
-    }
-
-    // Clean up memory and SDL resources
+    // Free the question list and unref the application object
     free_question_list(question_list);
-    close_SDL(&app);
-
-    return 0;
+    g_object_unref(app);
+    return status;
 }
