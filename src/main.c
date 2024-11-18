@@ -6,6 +6,8 @@ static GtkWidget *question_label;
 static GtkWidget *answer_buttons[MAX_ANSWERS];
 static QuestionList *question_list;
 static int current_question = 0;
+static int score = 0; // Variable to store the user's score
+static int total_questions = 0; // Total number of questions
 static GtkApplication *app_ref; // Reference to the application object
 
 // Helper function to set button labels with key number
@@ -25,9 +27,19 @@ static void load_next_question() {
                                       question_list->questions[current_question]->answers[i], i);
         }
     } else {
-        // End of the quiz
-        g_print("Quiz finished!\n");
-        g_application_quit(G_APPLICATION(app_ref)); // Correctly quit the application
+        // End of the quiz - Display the final score
+        char result[256];
+        snprintf(result, sizeof(result), "Quiz finished!\nYour score: %d/%d", score, total_questions);
+        gtk_label_set_text(GTK_LABEL(question_label), result);
+
+        // Hide the answer buttons after the quiz ends
+        for (int i = 0; i < MAX_ANSWERS; i++) {
+            gtk_widget_hide(answer_buttons[i]);
+        }
+        g_print("%s\n", result);
+
+        // Quit the application after displaying the result
+        g_timeout_add_seconds(3, (GSourceFunc) g_application_quit, app_ref);
     }
 }
 
@@ -39,6 +51,7 @@ static void on_answer_clicked(GtkButton *button, gpointer user_data) {
     // Check if the selected answer is correct
     if (answer_index == q->correct_answer) {
         g_print("Correct!\n");
+        score++; // Increment score for a correct answer
     } else {
         g_print("Wrong.\n");
     }
@@ -59,6 +72,7 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
         if (answer_index < MAX_ANSWERS) {
             if (answer_index == q->correct_answer) {
                 g_print("Correct!\n");
+                score++; // Increment score for a correct answer
             } else {
                 g_print("Wrong.\n");
             }
@@ -83,7 +97,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_container_add(GTK_CONTAINER(window), vbox);
 
     // Create and add the question label
-    question_label = gtk_label_new(question_list->questions[current_question]->question_text);
+    question_label = gtk_label_new("Loading questions...");
     gtk_box_pack_start(GTK_BOX(vbox), question_label, TRUE, TRUE, 0);
 
     // Create a box to hold the answer buttons
@@ -93,14 +107,16 @@ static void activate(GtkApplication *app, gpointer user_data) {
     // Create and add the answer buttons
     for (int i = 0; i < MAX_ANSWERS; i++) {
         answer_buttons[i] = gtk_button_new();
-        set_button_label_with_key(GTK_BUTTON(answer_buttons[i]), question_list->questions[current_question]->answers[i],
-                                  i);
         g_signal_connect(answer_buttons[i], "clicked", G_CALLBACK(on_answer_clicked), GINT_TO_POINTER(i));
         gtk_box_pack_start(GTK_BOX(button_box), answer_buttons[i], TRUE, TRUE, 0);
     }
 
     // Connect the key press event to the window
     g_signal_connect(window, "key-press-event", G_CALLBACK(on_key_press), NULL);
+
+    // Initialize the quiz
+    total_questions = question_list->size;
+    load_next_question();
 
     gtk_widget_show_all(window);
 }
