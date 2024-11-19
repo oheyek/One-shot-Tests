@@ -1,41 +1,92 @@
 #include <gtk/gtk.h>
 #include "question.h"
 
-// Widgets for displaying the question and answer buttons
+// Function prototypes
+static void load_next_question();
+
+static gboolean on_time_up(gpointer user_data);
+
+static gboolean update_timer_label(gpointer user_data);
+
+// Widgets for displaying the question, answers, and timer
 static GtkWidget *question_label;
 static GtkWidget *answer_buttons[MAX_ANSWERS];
+static GtkWidget *timer_label;
 static QuestionList *question_list;
 static int current_question = 0;
 static int score = 0; // Variable to store the user's score
 static int total_questions = 0; // Total number of questions
 static GtkApplication *app_ref; // Reference to the application object
+static guint current_timer_id = 0; // ID of the current timer
 
-// Helper function to set button labels with key number
-static void set_button_label_with_key(GtkButton *button, const char *text, int key_number) {
-    char label_with_key[256];
-    snprintf(label_with_key, sizeof(label_with_key), "%d: %s", key_number + 1, text);
-    gtk_button_set_label(button, label_with_key);
+// Define the time limit for answering each question (in seconds)
+#define QUESTION_TIME_LIMIT 10
+static int time_remaining = QUESTION_TIME_LIMIT;
+
+// Function to handle time-out (when time for the current question is up)
+static gboolean on_time_up(gpointer user_data) {
+    g_print("Time's up!\n");
+
+    // Move to the next question
+    current_question++;
+    load_next_question();
+
+    return G_SOURCE_REMOVE; // Stop the timer
+}
+
+// Function to update the timer label
+static gboolean update_timer_label(gpointer user_data) {
+    if (time_remaining > 0) {
+        char timer_text[32];
+        snprintf(timer_text, sizeof(timer_text), "Time left: %d seconds", time_remaining);
+        gtk_label_set_text(GTK_LABEL(timer_label), timer_text);
+
+        time_remaining--;
+        return G_SOURCE_CONTINUE; // Continue calling this function
+    } else {
+        on_time_up(NULL);
+        return G_SOURCE_REMOVE; // Stop updating the timer
+    }
 }
 
 // Function to load the next question
 static void load_next_question() {
+    // Cancel any existing timer
+    if (current_timer_id) {
+        g_source_remove(current_timer_id);
+        current_timer_id = 0;
+    }
+
     if (current_question < question_list->size) {
+        // Reset time for the next question
+        time_remaining = QUESTION_TIME_LIMIT;
+
         // Update the question label with the new question
         gtk_label_set_text(GTK_LABEL(question_label), question_list->questions[current_question]->question_text);
         for (int i = 0; i < MAX_ANSWERS; i++) {
-            set_button_label_with_key(GTK_BUTTON(answer_buttons[i]),
-                                      question_list->questions[current_question]->answers[i], i);
+            gtk_button_set_label(GTK_BUTTON(answer_buttons[i]),
+                                 question_list->questions[current_question]->answers[i]);
         }
+
+        // Start the timer for the new question
+        current_timer_id = g_timeout_add_seconds(1, update_timer_label, NULL);
+
+        // Ensure the timer label is visible
+        gtk_widget_show(timer_label);
     } else {
         // End of the quiz - Display the final score
         char result[256];
         snprintf(result, sizeof(result), "Quiz finished!\nYour score: %d/%d", score, total_questions);
         gtk_label_set_text(GTK_LABEL(question_label), result);
 
+        // Hide the timer label
+        gtk_widget_hide(timer_label);
+
         // Hide the answer buttons after the quiz ends
         for (int i = 0; i < MAX_ANSWERS; i++) {
             gtk_widget_hide(answer_buttons[i]);
         }
+
         g_print("%s\n", result);
 
         // Quit the application after displaying the result
@@ -99,6 +150,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
     // Create and add the question label
     question_label = gtk_label_new("Loading questions...");
     gtk_box_pack_start(GTK_BOX(vbox), question_label, TRUE, TRUE, 0);
+
+    // Create and add the timer label
+    timer_label = gtk_label_new("");
+    gtk_box_pack_start(GTK_BOX(vbox), timer_label, TRUE, TRUE, 0);
 
     // Create a box to hold the answer buttons
     GtkWidget *button_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
