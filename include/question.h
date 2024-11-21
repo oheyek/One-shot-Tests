@@ -1,6 +1,8 @@
 #ifndef QUESTION_H
 #define QUESTION_H
 
+#include "config.h" // Include the config.h header file
+
 // Define the maximum number of answers for each question
 #define MAX_ANSWERS 4
 
@@ -21,7 +23,10 @@ typedef struct {
 QuestionList* create_question_list();
 
 // Function to load questions from a file
-QuestionList* load_questions_from_file(const char *filename);
+QuestionList* load_questions_from_file(const char *filename, Config *config);
+
+// Function to shuffle the questions in the list
+void shuffle_questions(QuestionList *ql);
 
 // Function to free the memory allocated for the question list
 void free_question_list(QuestionList *list);

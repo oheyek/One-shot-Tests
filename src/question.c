@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "question.h"
+#include "config.h"
 
 // Function to create an empty question list
 QuestionList* create_question_list() {
@@ -11,8 +13,19 @@ QuestionList* create_question_list() {
     return list;
 }
 
+// Function to shuffle the questions in the list
+void shuffle_questions(QuestionList *ql) {
+    srand(time(NULL));
+    for (int i = ql->size - 1; i > 0; i--) {
+        int j = rand() % (i + 1);
+        Question *temp = ql->questions[i];
+        ql->questions[i] = ql->questions[j];
+        ql->questions[j] = temp;
+    }
+}
+
 // Function to load questions from a file
-QuestionList* load_questions_from_file(const char *filename) {
+QuestionList* load_questions_from_file(const char *filename, Config *config) {
     QuestionList *ql = create_question_list();
     FILE *file = fopen(filename, "r");
     if (!file) {
@@ -46,6 +59,12 @@ QuestionList* load_questions_from_file(const char *filename) {
     }
 
     fclose(file);
+
+    // Shuffle questions if the option is enabled
+    if (config->shuffle_questions) {
+        shuffle_questions(ql);
+    }
+
     return ql;
 }
 

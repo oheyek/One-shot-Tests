@@ -12,7 +12,7 @@ CFLAGS = -Wall -g -I$(INCLUDE_DIR) `pkg-config --cflags gtk+-3.0`
 LDFLAGS = `pkg-config --libs gtk+-3.0`
 
 # Source files and object files
-SRCS = $(SRC_DIR)/main.c $(SRC_DIR)/question.c
+SRCS = $(SRC_DIR)/main.c $(SRC_DIR)/question.c $(SRC_DIR)/config.c
 OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
 # Default target to build the executable

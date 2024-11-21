@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 #include "question.h"
+#include "config.h"
 
 // Function prototypes
 static void load_next_question();
@@ -24,9 +25,12 @@ static int total_questions = 0; // Total number of questions
 static GtkApplication *app_ref; // Reference to the application object
 static guint current_timer_id = 0; // ID of the current timer
 
+// Global variables for configuration
+static Config *config;
+
 // Define the time limit for answering each question (in seconds)
-#define QUESTION_TIME_LIMIT 10
-static int time_remaining = QUESTION_TIME_LIMIT;
+static int question_time_limit = 10;
+static int time_remaining = 10;
 static gboolean quiz_finished = FALSE; // Track if the quiz is finished
 
 // Function to handle time-out (when time for the current question is up)
@@ -62,6 +66,11 @@ static void restart_quiz(GtkButton *button, gpointer user_data) {
     score = 0;
     quiz_finished = FALSE; // Reset quiz finished flag
 
+    // Shuffle the questions if the option is enabled
+    if (config->shuffle_questions) {
+        shuffle_questions(question_list);
+    }
+
     // Reload the first question
     load_next_question();
 
@@ -75,8 +84,12 @@ static void restart_quiz(GtkButton *button, gpointer user_data) {
     }
 
     // Reset the timer for the new quiz start
-    time_remaining = QUESTION_TIME_LIMIT; // Reset time to the question time limit
-    gtk_widget_show(timer_label); // Ensure the timer label is visible again
+    time_remaining = config->question_time_limit; // Reset time to the question time limit
+    if (config->show_timer) {
+        gtk_widget_show(timer_label); // Ensure the timer label is visible again
+    } else {
+        gtk_widget_hide(timer_label);
+    }
 }
 
 // Function to load the next question
@@ -89,7 +102,7 @@ static void load_next_question() {
 
     if (current_question < question_list->size) {
         // Reset time for the next question
-        time_remaining = QUESTION_TIME_LIMIT;
+        time_remaining = config->question_time_limit;
 
         // Update the question label with the new question
         gtk_label_set_text(GTK_LABEL(question_label), question_list->questions[current_question]->question_text);
@@ -99,10 +112,12 @@ static void load_next_question() {
         }
 
         // Start the timer for the new question
-        current_timer_id = g_timeout_add_seconds(1, update_timer_label, NULL);
-
-        // Ensure the timer label is visible
-        gtk_widget_show(timer_label);
+        if (config->show_timer) {
+            current_timer_id = g_timeout_add_seconds(1, update_timer_label, NULL);
+            gtk_widget_show(timer_label);
+        } else {
+            gtk_widget_hide(timer_label);
+        }
 
         // Ensure the Restart button is visible but disabled during the quiz
         gtk_widget_show(restart_button);
@@ -218,7 +233,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     g_signal_connect(window, "key-press-event", G_CALLBACK(on_key_press), NULL);
 
     // Load the questions from a file
-    question_list = load_questions_from_file("questions.txt");
+    question_list = load_questions_from_file("questions.txt", config);
     if (!question_list) {
         return;
     }
@@ -230,13 +245,24 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_widget_show_all(window);
 }
 
+// Main function
 int main(int argc, char **argv) {
     GtkApplication *app = gtk_application_new("com.example.oneshottests", G_APPLICATION_DEFAULT_FLAGS);
     int status;
 
+    // Load the configuration from a file
+    config = load_config_from_file("config.txt");
+    if (!config) {
+        return 1;
+    }
+
+    // Set the question time limit from the configuration
+    question_time_limit = config->question_time_limit;
+
     // Load the questions from a file
-    question_list = load_questions_from_file("questions.txt");
+    question_list = load_questions_from_file("questions.txt", config);
     if (!question_list) {
+        free_config(config);
         return 1;
     }
 
@@ -244,8 +270,9 @@ int main(int argc, char **argv) {
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     status = g_application_run(G_APPLICATION(app), argc, argv);
 
-    // Free the question list and unref the application object
+    // Free the question list and config, and unref the application object
     free_question_list(question_list);
+    free_config(config);
     g_object_unref(app);
     return status;
 }
