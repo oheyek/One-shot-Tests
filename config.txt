@@ -1,3 +1,3 @@
-question_time_limit=10
+question_time_limit=999
 shuffle_questions=1
 show_timer=1
