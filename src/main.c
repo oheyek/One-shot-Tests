@@ -3,35 +3,31 @@
 #include "config.h"
 
 // Function prototypes
-static void load_next_question();
-
-static gboolean on_time_up(gpointer user_data);
-
-static gboolean update_timer_label(gpointer user_data);
-
-static void restart_quiz(GtkButton *button, gpointer user_data);
-
-static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data);
+void load_next_question();
+gboolean on_time_up(gpointer user_data);
+gboolean update_timer_label(gpointer user_data);
+void restart_quiz(GtkButton *button, gpointer user_data);
+gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data);
 
 // Widgets for displaying the question, answers, timer, and restart button
-static GtkWidget *question_label;
-static GtkWidget *answer_buttons[MAX_ANSWERS];
-static GtkWidget *timer_label;
-static GtkWidget *restart_button;
-static QuestionList *question_list;
-static int current_question = 0;
-static int score = 0; // Variable to store the user's score
-static int total_questions = 0; // Total number of questions
-static GtkApplication *app_ref; // Reference to the application object
-static guint current_timer_id = 0; // ID of the current timer
+GtkWidget *question_label;
+GtkWidget *answer_buttons[MAX_ANSWERS];
+GtkWidget *timer_label;
+GtkWidget *restart_button;
+QuestionList *question_list;
+int current_question = 0;
+int score = 0; // Variable to store the user's score
+int total_questions = 0; // Total number of questions
+GtkApplication *app_ref; // Reference to the application object
+guint current_timer_id = 0; // ID of the current timer
 
 // Global variables for configuration
-static Config *config;
+Config *config;
 
 // Define the time limit for answering each question (in seconds)
-static int question_time_limit = 10;
-static int time_remaining = 10;
-static gboolean quiz_finished = FALSE; // Track if the quiz is finished
+int question_time_limit = 10;
+int time_remaining = 10;
+gboolean quiz_finished = FALSE; // Track if the quiz is finished
 
 // Function to save the result to a CSV file
 static void save_result_to_file(const char *name, int score, int total_questions) {
@@ -67,7 +63,7 @@ static void get_best_score(char *best_name, int *best_score) {
 }
 
 // Function to handle time-out (when time for the current question is up)
-static gboolean on_time_up(gpointer user_data) {
+gboolean on_time_up(gpointer user_data) {
     g_print("Time's up!\n");
 
     // Move to the next question
@@ -78,7 +74,7 @@ static gboolean on_time_up(gpointer user_data) {
 }
 
 // Function to update the timer label
-static gboolean update_timer_label(gpointer user_data) {
+gboolean update_timer_label(gpointer user_data) {
     if (time_remaining > 0) {
         char timer_text[32];
         snprintf(timer_text, sizeof(timer_text), "Time left: %d seconds", time_remaining);
@@ -93,7 +89,7 @@ static gboolean update_timer_label(gpointer user_data) {
 }
 
 // Function to restart the quiz
-static void restart_quiz(GtkButton *button, gpointer user_data) {
+void restart_quiz(GtkButton *button, gpointer user_data) {
     // Reset quiz variables
     current_question = 0;
     score = 0;
@@ -126,7 +122,7 @@ static void restart_quiz(GtkButton *button, gpointer user_data) {
 }
 
 // Function to load the next question
-static void load_next_question() {
+void load_next_question() {
     // Cancel any existing timer
     if (current_timer_id) {
         g_source_remove(current_timer_id);
@@ -208,7 +204,7 @@ static void load_next_question() {
 }
 
 // Callback function for when an answer button is clicked
-static void on_answer_clicked(GtkButton *button, gpointer user_data) {
+void on_answer_clicked(GtkButton *button, gpointer user_data) {
     int answer_index = GPOINTER_TO_INT(user_data);
     Question *q = question_list->questions[current_question];
 
@@ -226,7 +222,7 @@ static void on_answer_clicked(GtkButton *button, gpointer user_data) {
 }
 
 // Function to handle keyboard input
-static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
+gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
     // Check which key was pressed (keys 1-4 for answers)
     if (event->keyval >= GDK_KEY_1 && event->keyval <= GDK_KEY_4) {
         int answer_index = event->keyval - GDK_KEY_1;
@@ -253,6 +249,11 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
     }
 
     return FALSE; // Continue processing other events
+}
+
+// Function to handle the destroy signal
+static void on_destroy(GtkWidget *widget, gpointer data) {
+    g_application_quit(G_APPLICATION(app_ref));
 }
 
 // Function to set up the main application window and widgets
@@ -294,6 +295,9 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
     // Connect the key press event to the window
     g_signal_connect(window, "key-press-event", G_CALLBACK(on_key_press), NULL);
+
+    // Connect the destroy signal to the window
+    g_signal_connect(window, "destroy", G_CALLBACK(on_destroy), NULL);
 
     // Load the questions from a file
     question_list = load_questions_from_file("questions.txt", config);

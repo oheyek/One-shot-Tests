@@ -2,6 +2,7 @@
 #define QUESTION_H
 
 #include "config.h" // Include the config.h header file
+#include <gtk/gtk.h> // Include GTK header
 
 // Define the maximum number of answers for each question
 #define MAX_ANSWERS 4
@@ -30,5 +31,11 @@ void shuffle_questions(QuestionList *ql);
 
 // Function to free the memory allocated for the question list
 void free_question_list(QuestionList *list);
+
+// Function prototypes for question module
+void load_next_question();
+void on_answer_clicked(GtkButton *button, gpointer user_data);
+gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data);
+gboolean on_time_up(gpointer user_data);
 
 #endif // QUESTION_H
