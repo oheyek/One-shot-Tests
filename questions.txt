@@ -10,3 +10,111 @@ Mars
 Jupiter
 Venus
 2
+Who wrote 'To Kill a Mockingbird'?
+Harper Lee
+Mark Twain
+Ernest Hemingway
+F. Scott Fitzgerald
+0
+What is the chemical symbol for water?
+H2O
+O2
+CO2
+NaCl
+0
+Which element has the atomic number 1?
+Hydrogen
+Helium
+Oxygen
+Carbon
+0
+What is the speed of light in vacuum?
+299,792,458 m/s
+150,000,000 m/s
+3,000,000 m/s
+30,000 m/s
+0
+Who painted the Mona Lisa?
+Leonardo da Vinci
+Vincent van Gogh
+Pablo Picasso
+Claude Monet
+0
+What is the powerhouse of the cell?
+Mitochondria
+Nucleus
+Ribosome
+Endoplasmic Reticulum
+0
+What is the capital of Japan?
+Tokyo
+Beijing
+Seoul
+Bangkok
+0
+What is the smallest prime number?
+2
+1
+3
+5
+0
+What is the largest ocean on Earth?
+Atlantic Ocean
+Indian Ocean
+Arctic Ocean
+Pacific Ocean
+3
+Who developed the theory of relativity?
+Isaac Newton
+Albert Einstein
+Galileo Galilei
+Nikola Tesla
+1
+What is the hardest natural substance on Earth?
+Gold
+Iron
+Diamond
+Platinum
+2
+What is the main ingredient in guacamole?
+Tomato
+Onion
+Avocado
+Pepper
+2
+What is the capital of Canada?
+Toronto
+Vancouver
+Ottawa
+Montreal
+2
+What is the longest river in the world?
+Amazon River
+Nile River
+Yangtze River
+Mississippi River
+1
+Who is known as the 'Father of Computers'?
+Charles Babbage
+Alan Turing
+John von Neumann
+Bill Gates
+0
+What is the chemical symbol for gold?
+Au
+Ag
+Pb
+Fe
+0
+What is the largest desert in the world?
+Sahara Desert
+Arabian Desert
+Gobi Desert
+Antarctic Desert
+3
+What is the capital of Australia?
+Sydney
+Melbourne
+Canberra
+Brisbane
+2
