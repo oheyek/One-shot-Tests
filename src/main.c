@@ -142,6 +142,7 @@ void load_next_question() {
 
         // Start the timer for the new question
         if (config->show_timer) {
+            update_timer_label(NULL); // Update the timer label immediately
             current_timer_id = g_timeout_add_seconds(1, update_timer_label, NULL);
             gtk_widget_show(timer_label);
         } else {
@@ -269,10 +270,12 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
     // Create and add the question label
     question_label = gtk_label_new("Loading questions...");
+    gtk_widget_set_name(question_label, "question_label");
     gtk_box_pack_start(GTK_BOX(vbox), question_label, TRUE, TRUE, 0);
 
     // Create and add the timer label
     timer_label = gtk_label_new("");
+    gtk_widget_set_name(timer_label, "timer_label");
     gtk_box_pack_start(GTK_BOX(vbox), timer_label, TRUE, TRUE, 0);
 
     // Create a box to hold the answer buttons
@@ -282,12 +285,14 @@ static void activate(GtkApplication *app, gpointer user_data) {
     // Create and add the answer buttons
     for (int i = 0; i < MAX_ANSWERS; i++) {
         answer_buttons[i] = gtk_button_new();
+        gtk_widget_set_name(answer_buttons[i], "answer_button");
         g_signal_connect(answer_buttons[i], "clicked", G_CALLBACK(on_answer_clicked), GINT_TO_POINTER(i));
         gtk_box_pack_start(GTK_BOX(button_box), answer_buttons[i], TRUE, TRUE, 0);
     }
 
     // Create and add the Restart Quiz button (initially hidden)
     restart_button = gtk_button_new_with_label("Restart Quiz");
+    gtk_widget_set_name(restart_button, "restart_button");
     g_signal_connect(restart_button, "clicked", G_CALLBACK(restart_quiz), NULL);
     gtk_box_pack_start(GTK_BOX(vbox), restart_button, TRUE, TRUE, 0);
     gtk_widget_hide(restart_button); // Hide it initially
@@ -308,6 +313,13 @@ static void activate(GtkApplication *app, gpointer user_data) {
     // Initialize the quiz
     total_questions = question_list->size;
     load_next_question();
+
+    // Load the CSS file
+    GtkCssProvider *provider = gtk_css_provider_new();
+    gtk_css_provider_load_from_path(provider, "style.css", NULL);
+    gtk_style_context_add_provider_for_screen(gdk_display_get_default_screen(gdk_display_get_default()),
+                                              GTK_STYLE_PROVIDER(provider),
+                                              GTK_STYLE_PROVIDER_PRIORITY_USER);
 
     gtk_widget_show_all(window);
 }

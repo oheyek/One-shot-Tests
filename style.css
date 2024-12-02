@@ -1,0 +1,42 @@
+/* style.css */
+
+/* Question label styling */
+#question_label {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 25px;
+}
+
+/* Timer label styling */
+#timer_label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ff0000;
+    margin-bottom: 20px;
+}
+
+/* Answer buttons styling */
+button#answer_button {
+    font-size: 18px;
+    padding: 10px;
+    margin: 5px;
+    color: #000000;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+button#answer_button:hover {
+    color: #1E90FF;
+    font-weight: bold;
+}
+
+/* Restart button styling */
+button#restart_button {
+    font-size: 14px;
+}
+
+button#restart_button:hover {
+    color: #1E90FF;
+    font-weight: bold;
+}
