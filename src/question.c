@@ -24,6 +24,22 @@ void shuffle_questions(QuestionList *ql) {
     }
 }
 
+void shuffle_answers(Question *q) {
+    int correct_answer_index = q->correct_answer;
+    for (int i = MAX_ANSWERS - 1; i > 0; i--) {
+        int j = rand() % (i + 1);
+        char *temp = q->answers[i];
+        q->answers[i] = q->answers[j];
+        q->answers[j] = temp;
+        if (i == correct_answer_index) {
+            correct_answer_index = j;
+        } else if (j == correct_answer_index) {
+            correct_answer_index = i;
+        }
+    }
+    q->correct_answer = correct_answer_index;
+}
+
 // Function to load questions from a file
 QuestionList* load_questions_from_file(const char *filename, Config *config) {
     QuestionList *ql = create_question_list();
@@ -52,6 +68,11 @@ QuestionList* load_questions_from_file(const char *filename, Config *config) {
 
         // Read the correct answer index
         fscanf(file, "%d\n", &(q->correct_answer));
+
+        // Shuffle answers if the option is enabled
+        if (config->shuffle_answers) {
+            shuffle_answers(q);
+        }
 
         // Add the question to the question list
         ql->questions = realloc(ql->questions, sizeof(Question*) * (ql->size + 1));

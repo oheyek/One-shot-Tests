@@ -100,6 +100,13 @@ void restart_quiz(GtkButton *button, gpointer user_data) {
         shuffle_questions(question_list);
     }
 
+    // Shuffle the answers for each question if the option is enabled
+    if (config->shuffle_answers) {
+        for (int i = 0; i < question_list->size; i++) {
+            shuffle_answers(question_list->questions[i]);
+        }
+    }
+
     // Reload the first question
     load_next_question();
 
@@ -328,6 +335,9 @@ static void activate(GtkApplication *app, gpointer user_data) {
 int main(int argc, char **argv) {
     GtkApplication *app = gtk_application_new("com.example.oneshottests", G_APPLICATION_DEFAULT_FLAGS);
     int status;
+
+    // Seed the random number generator
+    srand(time(NULL));
 
     // Load the configuration from a file
     config = load_config_from_file("config.txt");

@@ -1,3 +1,4 @@
 question_time_limit=60
 shuffle_questions=1
 show_timer=1
+shuffle_answers=1

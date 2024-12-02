@@ -29,6 +29,9 @@ QuestionList* load_questions_from_file(const char *filename, Config *config);
 // Function to shuffle the questions in the list
 void shuffle_questions(QuestionList *ql);
 
+// Function to shuffle the answers for a single question
+void shuffle_answers(Question *q);
+
 // Function to free the memory allocated for the question list
 void free_question_list(QuestionList *list);
 
