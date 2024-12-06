@@ -231,8 +231,14 @@ void on_answer_clicked(GtkButton *button, gpointer user_data) {
 
 // Function to handle keyboard input
 gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
-    // Check which key was pressed (keys 1-4 for answers)
-    if (event->keyval >= GDK_KEY_1 && event->keyval <= GDK_KEY_4) {
+    // Check if the 'r' key is pressed after the quiz is finished
+    if (event->keyval == GDK_KEY_r && quiz_finished) {
+        restart_quiz(NULL, NULL); // Restart the quiz using the 'r' key
+        return FALSE; // Continue processing other events
+    }
+
+    // Check if the quiz is finished before processing answer keys
+    if (!quiz_finished && event->keyval >= GDK_KEY_1 && event->keyval <= GDK_KEY_4) {
         int answer_index = event->keyval - GDK_KEY_1;
         Question *q = question_list->questions[current_question];
 
@@ -249,11 +255,6 @@ gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
             current_question++;
             load_next_question();
         }
-    }
-
-    // Check if the 'r' key is pressed after the quiz is finished
-    if (event->keyval == GDK_KEY_r && quiz_finished) {
-        restart_quiz(NULL, NULL); // Restart the quiz using the 'r' key
     }
 
     return FALSE; // Continue processing other events
@@ -342,6 +343,7 @@ int main(int argc, char **argv) {
     // Load the configuration from a file
     config = load_config_from_file("config.txt");
     if (!config) {
+        g_print("Error: Unable to load config file\n");
         return 1;
     }
 
@@ -351,6 +353,7 @@ int main(int argc, char **argv) {
     // Load the questions from a file
     question_list = load_questions_from_file("questions.txt", config);
     if (!question_list) {
+        g_print("Error: Unable to load questions file\n");
         free_config(config);
         return 1;
     }
